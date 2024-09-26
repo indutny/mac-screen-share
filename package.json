@@ -4,7 +4,11 @@
   "version": "1.0.0",
   "main": "index.js",
   "types": "index.d.ts",
-  "keywords": ["ScreenCaptureKit", "macos", "screenshare"],
+  "keywords": [
+    "ScreenCaptureKit",
+    "macos",
+    "screenshare"
+  ],
   "files": [
     "index.js",
     "index.d.ts",
