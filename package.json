@@ -1,0 +1,25 @@
+{
+  "name": "@indutny/mac-screen-share",
+  "description": "ScreenCaptureKit bindings for Node.js",
+  "version": "1.0.0",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "keywords": ["ScreenCaptureKit", "macos", "screenshare"],
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "addon.mm",
+    "addon.h",
+    "README.md"
+  ],
+  "author": "Fedor Indutny <238531+indutny@users.noreply.github.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/indutny/mac-screen-share/issues"
+  },
+  "homepage": "https://github.com/indutny/mac-screen-share#readme",
+  "dependencies": {
+    "bindings": "^1.5.0",
+    "node-addon-api": "*"
+  }
+}
