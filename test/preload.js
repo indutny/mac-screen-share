@@ -1,6 +1,6 @@
 const { Stream } = require('../');
 
-const WIDTH = 1280;
+const WIDTH = 960;
 const HEIGHT = 720;
 
 window.start = () => {
