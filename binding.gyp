@@ -1,11 +1,11 @@
 {
-  "targets": [{
-    "target_name": "mac-screen-share",
-    "dependencies": [
-      "<!(node -p \"require('node-addon-api').targets\"):node_addon_api",
-    ],
-    "conditions": [
-      ["OS=='mac'", {
+  "conditions": [
+    ["OS=='mac'", {
+      "targets": [{
+        "target_name": "mac-screen-share",
+        "dependencies": [
+          "<!(node -p \"require('node-addon-api').targets\"):node_addon_api",
+        ],
         "sources": [
           "addon.mm",
         ],
@@ -22,6 +22,11 @@
           "LLVM_LTO": "YES",
         }
       }],
-    ],
-  }],
+    }, {
+      "targets": [{
+        "target_name": "noop",
+        "type": "none",
+      }],
+    }],
+  ],
 }
