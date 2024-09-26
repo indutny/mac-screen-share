@@ -25,6 +25,7 @@ const stream = new Stream({
   onStop(error) {
   },
   onFrame(frame, width, height) {
+    // Frame is in Nv12 encoding
   },
 });
 
