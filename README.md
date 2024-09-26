@@ -13,7 +13,7 @@ npm install @indutny/mac-screen-share
 ## Usage
 
 ```js
-import { Stream } from '@indutny/mac-screen-s-hare';
+import { Stream } from '@indutny/mac-screen-share';
 
 const stream = new Stream({
   width: 1024,
@@ -22,9 +22,7 @@ const stream = new Stream({
 
   onStart() {
   },
-  onStop() {
-  },
-  onError(err) {
+  onStop(error) {
   },
   onFrame(frame, width, height) {
   },
