@@ -243,7 +243,7 @@ API_AVAILABLE(macos(15.0))
 
   config.scalesToFit = true;
   config.showsCursor = true;
-  config.pixelFormat = kCVPixelFormatType_420YpCbCr8BiPlanarFullRange;
+  config.pixelFormat = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange;
   config.colorSpaceName = kCGColorSpaceSRGB;
   config.backgroundColor = CGColorGetConstantColor(kCGColorBlack);
 
@@ -355,7 +355,7 @@ API_AVAILABLE(macos(15.0))
 
   // Pixel format should match what we requested
   auto pixel_format = CVPixelBufferGetPixelFormatType(image_buffer);
-  CHECK_EQ(pixel_format, kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
+  CHECK_EQ(pixel_format, kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
            "Image buffer has invalid pixel format");
 
   // We check that it is planar above
