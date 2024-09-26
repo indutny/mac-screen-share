@@ -205,8 +205,9 @@ API_AVAILABLE(macos(15.0))
 
         auto* cb_cr_addr_p = frame.cb_cr_addr + (frame.origin_y + 1) / 2 *
                                                     frame.cb_cr_bytes_per_row;
+        size_t rounded_origin_x = frame.origin_x & (~1);
         for (size_t y = 0; y < (frame.height + 1) / 2; y++) {
-          memcpy(p, cb_cr_addr_p + frame.origin_x,
+          memcpy(p, cb_cr_addr_p + rounded_origin_x,
                  rounded_width * sizeof(*cb_cr_addr_p));
           p += rounded_width * sizeof(*cb_cr_addr_p);
 
