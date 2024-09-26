@@ -12,6 +12,7 @@
   "files": [
     "index.js",
     "index.d.ts",
+    "binding.gyp",
     "addon.mm",
     "addon.h",
     "README.md"
