@@ -26,5 +26,8 @@
   "dependencies": {
     "bindings": "^1.5.0",
     "node-addon-api": "*"
+  },
+  "scripts": {
+    "format": "xcrun clang-format --style=chromium -i *.h *.mm"
   }
 }

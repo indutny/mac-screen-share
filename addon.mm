@@ -175,44 +175,44 @@ API_AVAILABLE(macos(15.0))
   dispatch_assert_queue(frame_queue_);
   auto rc =
       options_.on_frame.BlockingCall(^(Napi::Env env, Napi::Function callback) {
-        size_t rounded_width = frame.width + (frame.width & 1);
-        size_t buf_len = frame.width * frame.height +
-                         rounded_width * ((frame.height + 1) / 2);
+        size_t in_y_x_offset = frame.origin_x;
+        size_t in_y_y_offset = frame.origin_y;
+        size_t out_y_bytes_per_row = frame.width;
+        size_t out_y_height = frame.height;
 
-        if (buffer_->IsEmpty() || buffer_->Value().Length() < buf_len) {
-          // Round buf length up slightly to avoid re-creating it often.
-          size_t rounded_buf_len = buf_len;
-          if ((buf_len & 0xffff) != 0) {
-            buf_len += 0x10000 - (buf_len & 0xffff);
-          }
+        // Since we are in 4:2:0 there 2x less pixels in cb cr buffer, but it
+        // has to be rounded up.
+        size_t in_cb_cr_x_offset = frame.origin_x & (~1);
+        size_t in_cb_cr_y_offset = (frame.origin_y + 1) / 2;
+        size_t out_cb_cr_bytes_per_row = frame.width + (frame.width & 1);
+        size_t out_cb_cr_height = (frame.height + 1) / 2;
 
-          buffer_->Reset(Napi::Buffer<uint8_t>::New(env, rounded_buf_len), 1);
-        }
+        size_t buf_len = out_y_bytes_per_row * out_y_height +
+                         out_cb_cr_bytes_per_row * out_cb_cr_height;
 
         // Create NV12 buffer: 8bit Y + sub-sampled 8bit CbCr (2x2 Y per Cr+Cb
         // pair) Need to take the computed width/height in account because the
-        // buffer is larger than the visible size
-        auto* buf = buffer_->Value().Data();
+        // input buffer is larger than the visible size
+        auto* buf = [self getBufferWithEnv:env andSize:buf_len];
         auto* p = buf;
 
-        auto* y_addr_p = frame.y_addr + frame.origin_y * frame.y_bytes_per_row;
-        for (size_t y = 0; y < frame.height; y++) {
-          memcpy(p, y_addr_p + frame.origin_x, frame.width * sizeof(*y_addr_p));
-          p += frame.width * sizeof(*y_addr_p);
+        auto* in_y = frame.y_addr + in_y_y_offset * frame.y_bytes_per_row;
+        for (size_t y = 0; y < out_y_height; y++) {
+          memcpy(p, in_y + in_y_x_offset, out_y_bytes_per_row);
+          p += out_y_bytes_per_row;
 
-          y_addr_p += frame.y_bytes_per_row;
+          in_y += frame.y_bytes_per_row;
         }
 
-        auto* cb_cr_addr_p = frame.cb_cr_addr + (frame.origin_y + 1) / 2 *
-                                                    frame.cb_cr_bytes_per_row;
-        size_t rounded_origin_x = frame.origin_x & (~1);
-        for (size_t y = 0; y < (frame.height + 1) / 2; y++) {
-          memcpy(p, cb_cr_addr_p + rounded_origin_x,
-                 rounded_width * sizeof(*cb_cr_addr_p));
-          p += rounded_width * sizeof(*cb_cr_addr_p);
+        auto* in_cb_cr =
+            frame.cb_cr_addr + in_cb_cr_y_offset * frame.cb_cr_bytes_per_row;
+        for (size_t y = 0; y < out_cb_cr_height; y++) {
+          memcpy(p, in_cb_cr + in_cb_cr_x_offset, out_cb_cr_bytes_per_row);
+          p += out_cb_cr_bytes_per_row;
 
-          cb_cr_addr_p += frame.cb_cr_bytes_per_row;
+          in_cb_cr += frame.cb_cr_bytes_per_row;
         }
+        CHECK(p == buf + buf_len, "Out-of-bounds");
 
         callback({buffer_->Value(), Napi::Number::New(env, frame.width),
                   Napi::Number::New(env, frame.height)});
@@ -221,6 +221,22 @@ API_AVAILABLE(macos(15.0))
   CHECK_EQ(rc, napi_ok, "onFrame tsfn failure");
 
   dispatch_semaphore_wait(frame_sem_, DISPATCH_TIME_FOREVER);
+}
+
+- (uint8_t*)getBufferWithEnv:(Napi::Env)env andSize:(size_t)size {
+  if (!buffer_->IsEmpty() && buffer_->Value().Length() >= size) {
+    return buffer_->Value().Data();
+  }
+
+  // Round buf size up slightly to avoid re-creating it often.
+  size_t rounded_size = size;
+  if ((rounded_size & 0xffff) != 0) {
+    rounded_size += 0x10000 - (rounded_size & 0xffff);
+  }
+
+  buffer_->Reset(Napi::Buffer<uint8_t>::New(env, rounded_size), 1);
+
+  return buffer_->Value().Data();
 }
 
 // SCContentSharingPickerObserver
