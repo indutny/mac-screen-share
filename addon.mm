@@ -199,12 +199,11 @@ API_AVAILABLE(macos(15.0))
         size_t buf_len = out_y_bytes_per_row * out_y_height +
                          out_cb_cr_bytes_per_row * out_cb_cr_height;
 
-        // Create NV12 buffer: 8bit Y + sub-sampled 8bit CbCr (2x2 Y per Cr+Cb
-        // pair) Need to take the computed width/height in account because the
-        // input buffer is larger than the visible size
+        // Lazily allocate V8 Buffer
         uint8_t* buf = [self getBufferWithEnv:env andSize:buf_len];
         uint8_t* p = buf;
 
+        // Copy "Y" data row-by-row
         const uint8_t* in_y =
             frame.y_addr + in_y_y_offset * frame.y_bytes_per_row;
         for (size_t y = 0; y < out_y_height; y++) {
@@ -214,6 +213,7 @@ API_AVAILABLE(macos(15.0))
           in_y += frame.y_bytes_per_row;
         }
 
+        // Copy "CbCr" data row-by-row
         const uint8_t* in_cb_cr =
             frame.cb_cr_addr + in_cb_cr_y_offset * frame.cb_cr_bytes_per_row;
         for (size_t y = 0; y < out_cb_cr_height; y++) {
@@ -230,6 +230,8 @@ API_AVAILABLE(macos(15.0))
       });
   CHECK_EQ(rc, napi_ok, "onFrame tsfn failure");
 
+  // Plane pointers remain valid for the duration of this call, therefore wait
+  // for processing to be fully done before returning.
   dispatch_semaphore_wait(frame_sem_, DISPATCH_TIME_FOREVER);
 }
 
