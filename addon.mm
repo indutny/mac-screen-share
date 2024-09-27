@@ -79,6 +79,14 @@ API_AVAILABLE(macos(15.0))
   });
   CHECK(rc == napi_ok, "dealloc tsfn failure");
   options_.on_frame.Release();
+
+  {
+    std::lock_guard<std::mutex> guard(stream_count_mutex);
+
+    // Note: when picker is not active we can't add windows to the current
+    // stream.
+    picker.active = stream_count != 0;
+  }
 }
 
 - (void)hidePicker {
@@ -94,7 +102,6 @@ API_AVAILABLE(macos(15.0))
 
   std::lock_guard<std::mutex> guard(stream_count_mutex);
   picker.maximumStreamCount = @(--stream_count);
-  picker.active = stream_count != 0;
 }
 
 // Runs on V8 thread
