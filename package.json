@@ -28,6 +28,6 @@
     "node-addon-api": "*"
   },
   "scripts": {
-    "format": "xcrun clang-format --style=chromium -i *.h *.mm"
+    "format": "xcrun clang-format --style=chromium -Werror --verbose -i *.h *.mm"
   }
 }
