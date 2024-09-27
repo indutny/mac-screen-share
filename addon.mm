@@ -175,14 +175,15 @@ API_AVAILABLE(macos(15.0))
   dispatch_assert_queue(frame_queue_);
   auto rc =
       options_.on_frame.BlockingCall(^(Napi::Env env, Napi::Function callback) {
+        // Y plane is 1 byte per pixel and has the same number of pixels as the
+        // frame.
         size_t in_y_x_offset = frame.origin_x;
         size_t in_y_y_offset = frame.origin_y;
         size_t out_y_bytes_per_row = frame.width;
         size_t out_y_height = frame.height;
 
-        // Since we are in 4:2:0 there 2x less pixels in cb cr buffer, but it
-        // has to be rounded up. Each pixel is encoded as two bytes so we don't
-        // have to multiple width by 2.
+        // Since we are in 4:2:0, CbCr plane has 2x less pixels than Y plane,
+        // but each pixel is encoded as 2 bytes (1 for Cb, 1 for Cr).
         size_t in_cb_cr_x_offset = frame.origin_x & (~1);
         size_t in_cb_cr_y_offset = (frame.origin_y + 1) / 2;
         size_t out_cb_cr_bytes_per_row = frame.width + (frame.width & 1);
