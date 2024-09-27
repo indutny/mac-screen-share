@@ -193,10 +193,11 @@ API_AVAILABLE(macos(15.0))
         // Create NV12 buffer: 8bit Y + sub-sampled 8bit CbCr (2x2 Y per Cr+Cb
         // pair) Need to take the computed width/height in account because the
         // input buffer is larger than the visible size
-        auto* buf = [self getBufferWithEnv:env andSize:buf_len];
-        auto* p = buf;
+        uint8_t* buf = [self getBufferWithEnv:env andSize:buf_len];
+        uint8_t* p = buf;
 
-        auto* in_y = frame.y_addr + in_y_y_offset * frame.y_bytes_per_row;
+        const uint8_t* in_y =
+            frame.y_addr + in_y_y_offset * frame.y_bytes_per_row;
         for (size_t y = 0; y < out_y_height; y++) {
           memcpy(p, in_y + in_y_x_offset, out_y_bytes_per_row);
           p += out_y_bytes_per_row;
@@ -204,7 +205,7 @@ API_AVAILABLE(macos(15.0))
           in_y += frame.y_bytes_per_row;
         }
 
-        auto* in_cb_cr =
+        const uint8_t* in_cb_cr =
             frame.cb_cr_addr + in_cb_cr_y_offset * frame.cb_cr_bytes_per_row;
         for (size_t y = 0; y < out_cb_cr_height; y++) {
           memcpy(p, in_cb_cr + in_cb_cr_x_offset, out_cb_cr_bytes_per_row);
