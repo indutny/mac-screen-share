@@ -43,7 +43,6 @@ API_AVAILABLE(macos(15.0))
 
 // Runs on frame queue
 - (void)onFrame:(struct FrameData)frame;
-- (void)stopPicking;
 
 @end
 
@@ -63,10 +62,6 @@ API_AVAILABLE(macos(15.0))
 }
 
 - (void)dealloc {
-  // Remove from observer
-  auto* picker = [SCContentSharingPicker sharedPicker];
-  [picker removeObserver:self];
-
   options_.on_start.Release();
   options_.on_stop.Release();
 
@@ -87,20 +82,10 @@ API_AVAILABLE(macos(15.0))
 
     // Note: when picker is not active we can't add windows to the current
     // stream.
+    auto* picker = SCContentSharingPicker.sharedPicker;
     picker.maximumStreamCount = @(--stream_count);
     picker.active = stream_count != 0;
   }
-}
-
-- (void)stopPicking {
-  dispatch_assert_queue(frame_queue_);
-  if (!is_picking_) {
-    return;
-  }
-  is_picking_ = false;
-
-  auto* picker = [SCContentSharingPicker sharedPicker];
-  [picker removeObserver:self];
 }
 
 // Runs on V8 thread
@@ -131,8 +116,6 @@ API_AVAILABLE(macos(15.0))
 
 - (void)stop {
   dispatch_async(frame_queue_, ^{
-    [self stopPicking];
-
     // Stream wasn't started
     if (stream_ == nil) {
       [self onStop:nil];
@@ -149,8 +132,6 @@ API_AVAILABLE(macos(15.0))
 
 - (void)onStart:(SCStream*)stream {
   dispatch_async(frame_queue_, ^{
-    [self stopPicking];
-
     stream_ = stream;
 
     auto rc = options_.on_start.BlockingCall(
@@ -163,8 +144,6 @@ API_AVAILABLE(macos(15.0))
 
 - (void)onStop:(nullable NSError*)error {
   dispatch_async(frame_queue_, ^{
-    [self stopPicking];
-
     auto rc = options_.on_stop.BlockingCall(
         ^(Napi::Env env, Napi::Function callback) {
           if (error == nil || error.code == SCStreamErrorUserStopped) {
@@ -178,8 +157,10 @@ API_AVAILABLE(macos(15.0))
         });
     CHECK_EQ(rc, napi_ok, "onStop tsfn failure");
 
-    // This is the only strong reference to ourselves so "dealloc" is guaranteed
-    // to be called.
+    // These are the only strong references to ourselves so "dealloc" is
+    // guaranteed to be called.
+    auto* picker = SCContentSharingPicker.sharedPicker;
+    [picker removeObserver:self];
     keep_alive_ = nil;
   });
 }
@@ -259,16 +240,28 @@ API_AVAILABLE(macos(15.0))
 - (void)contentSharingPicker:(SCContentSharingPicker*)picker
          didUpdateWithFilter:(SCContentFilter*)filter
                    forStream:(nullable SCStream*)stream {
+  if (stream != nil) {
+    dispatch_async(frame_queue_, ^{
+      if (stream_ != stream) {
+        return;
+      }
+
+      [stream updateContentFilter:filter
+                completionHandler:^(NSError* error) {
+                  if (error != nil) {
+                    [self onStop:error];
+                  }
+                }];
+    });
+    return;
+  }
+
   // Observer cannot be removed while handling the callback, so just ignore
   // further invocations.
   if (picked_) {
     return;
   }
   picked_ = true;
-
-  if (stream != nil) {
-    return;
-  }
 
   SCStreamConfiguration* config = [[SCStreamConfiguration alloc] init];
 
