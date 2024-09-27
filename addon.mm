@@ -181,7 +181,8 @@ API_AVAILABLE(macos(15.0))
         size_t out_y_height = frame.height;
 
         // Since we are in 4:2:0 there 2x less pixels in cb cr buffer, but it
-        // has to be rounded up.
+        // has to be rounded up. Each pixel is encoded as two bytes so we don't
+        // have to multiple width by 2.
         size_t in_cb_cr_x_offset = frame.origin_x & (~1);
         size_t in_cb_cr_y_offset = (frame.origin_y + 1) / 2;
         size_t out_cb_cr_bytes_per_row = frame.width + (frame.width & 1);
@@ -231,9 +232,8 @@ API_AVAILABLE(macos(15.0))
 
   // Round buf size up slightly to avoid re-creating it often.
   size_t rounded_size = size;
-  if ((rounded_size & 0xffff) != 0) {
-    rounded_size += 0x10000 - (rounded_size & 0xffff);
-  }
+  rounded_size += 0xffff;
+  rounded_size &= ~0xffff;
 
   buffer_->Reset(Napi::Buffer<uint8_t>::New(env, rounded_size), 1);
 
