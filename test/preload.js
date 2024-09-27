@@ -17,19 +17,16 @@ window.start = () => {
 
     const writer = track.writable.getWriter();
 
-    video.srcObject = mediaStream;
-
     stream = new Stream({
       width: WIDTH,
       height: HEIGHT,
       frameRate: 2,
 
       onStart() {
-        console.error('start');
+        video.srcObject = mediaStream;
       },
 
       onStop(err) {
-        console.error('stopped', err);
         writer.close();
         video.srcObject = undefined;
       },

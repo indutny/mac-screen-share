@@ -37,11 +37,13 @@ API_AVAILABLE(macos(15.0))
 - (id)initWithOptions:(struct DelegateOptions)options;
 - (void)stop;
 
-// Runs on dispatch queue
-- (void)hidePicker;
+// Runs on ScreenCaptureKit's queue
 - (void)onStart:(SCStream*)stream;
 - (void)onStop:(nullable NSError*)error;
+
+// Runs on frame queue
 - (void)onFrame:(struct FrameData)frame;
+- (void)stopPicking;
 
 @end
 
@@ -85,23 +87,20 @@ API_AVAILABLE(macos(15.0))
 
     // Note: when picker is not active we can't add windows to the current
     // stream.
+    picker.maximumStreamCount = @(--stream_count);
     picker.active = stream_count != 0;
   }
 }
 
-- (void)hidePicker {
-  @synchronized(self) {
-    if (!is_picking_) {
-      return;
-    }
-    is_picking_ = false;
+- (void)stopPicking {
+  dispatch_assert_queue(frame_queue_);
+  if (!is_picking_) {
+    return;
   }
+  is_picking_ = false;
 
   auto* picker = [SCContentSharingPicker sharedPicker];
   [picker removeObserver:self];
-
-  std::lock_guard<std::mutex> guard(stream_count_mutex);
-  picker.maximumStreamCount = @(--stream_count);
 }
 
 // Runs on V8 thread
@@ -131,9 +130,15 @@ API_AVAILABLE(macos(15.0))
 }
 
 - (void)stop {
-  [self hidePicker];
-
   dispatch_async(frame_queue_, ^{
+    [self stopPicking];
+
+    // Stream wasn't started
+    if (stream_ == nil) {
+      [self onStop:nil];
+      return;
+    }
+
     [stream_ stopCaptureWithCompletionHandler:^(NSError* error) {
       [self onStop:error];
     }];
@@ -144,7 +149,8 @@ API_AVAILABLE(macos(15.0))
 
 - (void)onStart:(SCStream*)stream {
   dispatch_async(frame_queue_, ^{
-    [self hidePicker];
+    [self stopPicking];
+
     stream_ = stream;
 
     auto rc = options_.on_start.BlockingCall(
@@ -157,7 +163,7 @@ API_AVAILABLE(macos(15.0))
 
 - (void)onStop:(nullable NSError*)error {
   dispatch_async(frame_queue_, ^{
-    [self hidePicker];
+    [self stopPicking];
 
     auto rc = options_.on_stop.BlockingCall(
         ^(Napi::Env env, Napi::Function callback) {
