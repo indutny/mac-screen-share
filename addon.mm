@@ -49,11 +49,15 @@ API_AVAILABLE(macos(15.0))
 API_AVAILABLE(macos(15.0))
 @implementation StreamDelegate {
   struct DelegateOptions options_;
-  SCStream* stream_;
-  bool is_picking_;
-  bool picked_;
   dispatch_queue_t frame_queue_;
   dispatch_semaphore_t frame_sem_;
+
+  // Updated on frame_queue_
+  SCStream* stream_;
+  bool is_stopped_;
+
+  // Updated on ScreenCaptureKit's queue
+  bool picked_;
 
   // Created on V8 thread
   Napi::Reference<Napi::Buffer<uint8_t>>* buffer_;
@@ -108,7 +112,6 @@ API_AVAILABLE(macos(15.0))
     picker.active = true;
     [picker present];
   }
-  is_picking_ = true;
   picked_ = false;
 
   return self;
@@ -116,6 +119,8 @@ API_AVAILABLE(macos(15.0))
 
 - (void)stop {
   dispatch_async(frame_queue_, ^{
+    is_stopped_ = true;
+
     // Stream wasn't started
     if (stream_ == nil) {
       [self onStop:nil];
@@ -132,6 +137,14 @@ API_AVAILABLE(macos(15.0))
 
 - (void)onStart:(SCStream*)stream {
   dispatch_async(frame_queue_, ^{
+    // If stopped concurrently with start - stop the stream
+    if (is_stopped_) {
+      [stream stopCaptureWithCompletionHandler:^(NSError*){
+          // Ignore errors since we have nowhere to report them.
+      }];
+      return;
+    }
+
     stream_ = stream;
 
     auto rc = options_.on_start.BlockingCall(
@@ -240,17 +253,19 @@ API_AVAILABLE(macos(15.0))
 - (void)contentSharingPicker:(SCContentSharingPicker*)picker
          didUpdateWithFilter:(SCContentFilter*)filter
                    forStream:(nullable SCStream*)stream {
+  // If the filter was updated for our stream - we need to update the content
+  // filter.
   if (stream != nil) {
     dispatch_async(frame_queue_, ^{
+      // `stream_` is set on `frame_queue_` so perform the check there as well.
       if (stream_ != stream) {
         return;
       }
 
       [stream updateContentFilter:filter
-                completionHandler:^(NSError* error) {
-                  if (error != nil) {
-                    [self onStop:error];
-                  }
+                completionHandler:^(NSError*){
+                    // Ignore errors if update failed. The stream should be
+                    // intact.
                 }];
     });
     return;
