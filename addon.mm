@@ -185,7 +185,7 @@ API_AVAILABLE(macos(15.0))
         // Since we are in 4:2:0, CbCr plane has 2x less pixels than Y plane,
         // but each pixel is encoded as 2 bytes (1 for Cb, 1 for Cr).
         size_t in_cb_cr_x_offset = frame.origin_x & (~1);
-        size_t in_cb_cr_y_offset = (frame.origin_y + 1) / 2;
+        size_t in_cb_cr_y_offset = frame.origin_y / 2;
         size_t out_cb_cr_bytes_per_row = frame.width + (frame.width & 1);
         size_t out_cb_cr_height = (frame.height + 1) / 2;
 
