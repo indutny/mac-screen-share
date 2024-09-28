@@ -28,6 +28,15 @@ static std::mutex stream_count_mutex;
 #define CHECK_NE(actual, expected, message) \
   CHECK((actual) != (expected), message)
 
+#define HANDLE_EXCEPTIONS(name, value)                                \
+  do {                                                                \
+    if ((value).IsEmpty()) {                                          \
+      auto msg = env.GetAndClearPendingException().Message();         \
+      fprintf(stderr, "Uncaught exception in " #name " handler %s\n", \
+              msg.c_str());                                           \
+    }                                                                 \
+  } while (0)
+
 API_AVAILABLE(macos(15.0))
 @interface StreamDelegate : NSObject <SCContentSharingPickerObserver,
                                       SCStreamDelegate,
@@ -149,7 +158,7 @@ API_AVAILABLE(macos(15.0))
 
     auto rc = options_.on_start.BlockingCall(
         ^(Napi::Env env, Napi::Function callback) {
-          callback({});
+          HANDLE_EXCEPTIONS(onStart, callback({}));
         });
     CHECK_EQ(rc, napi_ok, "onStart tsfn failure");
   });
@@ -157,17 +166,17 @@ API_AVAILABLE(macos(15.0))
 
 - (void)onStop:(nullable NSError*)error {
   dispatch_async(frame_queue_, ^{
-    auto rc = options_.on_stop.BlockingCall(
-        ^(Napi::Env env, Napi::Function callback) {
-          if (error == nil || error.code == SCStreamErrorUserStopped) {
-            callback({env.Null()});
-          } else {
-            callback({
-                Napi::Error::New(env, error.localizedDescription.UTF8String)
-                    .Value(),
-            });
-          }
-        });
+    auto rc = options_.on_stop.BlockingCall(^(Napi::Env env,
+                                              Napi::Function callback) {
+      Napi::Value js_error;
+      if (error == nil || error.code == SCStreamErrorUserStopped) {
+        js_error = env.Null();
+      } else {
+        js_error = Napi::Error::New(env, error.localizedDescription.UTF8String)
+                       .Value();
+      }
+      HANDLE_EXCEPTIONS(onStop, callback({js_error}));
+    });
     CHECK_EQ(rc, napi_ok, "onStop tsfn failure");
 
     // These are the only strong references to ourselves so "dealloc" is
@@ -182,55 +191,55 @@ API_AVAILABLE(macos(15.0))
   dispatch_assert_queue(frame_queue_);
   auto timestamp =
       CMTimeGetSeconds(CMSyncGetTime(stream_.synchronizationClock));
-  auto rc =
-      options_.on_frame.BlockingCall(^(Napi::Env env, Napi::Function callback) {
-        // Y plane is 1 byte per pixel and has the same number of pixels as the
-        // frame.
-        size_t in_y_x_offset = frame.origin_x;
-        size_t in_y_y_offset = frame.origin_y;
-        size_t out_y_bytes_per_row = frame.width;
-        size_t out_y_height = frame.height;
+  auto rc = options_.on_frame.BlockingCall(^(Napi::Env env,
+                                             Napi::Function callback) {
+    // Y plane is 1 byte per pixel and has the same number of pixels as the
+    // frame.
+    size_t in_y_x_offset = frame.origin_x;
+    size_t in_y_y_offset = frame.origin_y;
+    size_t out_y_bytes_per_row = frame.width;
+    size_t out_y_height = frame.height;
 
-        // Since we are in 4:2:0, CbCr plane has 2x less pixels than Y plane,
-        // but each pixel is encoded as 2 bytes (1 for Cb, 1 for Cr).
-        size_t in_cb_cr_x_offset = frame.origin_x & (~1);
-        size_t in_cb_cr_y_offset = frame.origin_y / 2;
-        size_t out_cb_cr_bytes_per_row = frame.width + (frame.width & 1);
-        size_t out_cb_cr_height = (frame.height + 1) / 2;
+    // Since we are in 4:2:0, CbCr plane has 2x less pixels than Y plane,
+    // but each pixel is encoded as 2 bytes (1 for Cb, 1 for Cr).
+    size_t in_cb_cr_x_offset = frame.origin_x & (~1);
+    size_t in_cb_cr_y_offset = frame.origin_y / 2;
+    size_t out_cb_cr_bytes_per_row = frame.width + (frame.width & 1);
+    size_t out_cb_cr_height = (frame.height + 1) / 2;
 
-        size_t buf_len = out_y_bytes_per_row * out_y_height +
-                         out_cb_cr_bytes_per_row * out_cb_cr_height;
+    size_t buf_len = out_y_bytes_per_row * out_y_height +
+                     out_cb_cr_bytes_per_row * out_cb_cr_height;
 
-        // Lazily allocate V8 Buffer
-        uint8_t* buf = [self getBufferWithEnv:env andSize:buf_len];
-        uint8_t* p = buf;
+    // Lazily allocate V8 Buffer
+    uint8_t* buf = [self getBufferWithEnv:env andSize:buf_len];
+    uint8_t* p = buf;
 
-        // Copy "Y" data row-by-row
-        const uint8_t* in_y =
-            frame.y_addr + in_y_y_offset * frame.y_bytes_per_row;
-        for (size_t y = 0; y < out_y_height; y++) {
-          memcpy(p, in_y + in_y_x_offset, out_y_bytes_per_row);
-          p += out_y_bytes_per_row;
+    // Copy "Y" data row-by-row
+    const uint8_t* in_y = frame.y_addr + in_y_y_offset * frame.y_bytes_per_row;
+    for (size_t y = 0; y < out_y_height; y++) {
+      memcpy(p, in_y + in_y_x_offset, out_y_bytes_per_row);
+      p += out_y_bytes_per_row;
 
-          in_y += frame.y_bytes_per_row;
-        }
+      in_y += frame.y_bytes_per_row;
+    }
 
-        // Copy "CbCr" data row-by-row
-        const uint8_t* in_cb_cr =
-            frame.cb_cr_addr + in_cb_cr_y_offset * frame.cb_cr_bytes_per_row;
-        for (size_t y = 0; y < out_cb_cr_height; y++) {
-          memcpy(p, in_cb_cr + in_cb_cr_x_offset, out_cb_cr_bytes_per_row);
-          p += out_cb_cr_bytes_per_row;
+    // Copy "CbCr" data row-by-row
+    const uint8_t* in_cb_cr =
+        frame.cb_cr_addr + in_cb_cr_y_offset * frame.cb_cr_bytes_per_row;
+    for (size_t y = 0; y < out_cb_cr_height; y++) {
+      memcpy(p, in_cb_cr + in_cb_cr_x_offset, out_cb_cr_bytes_per_row);
+      p += out_cb_cr_bytes_per_row;
 
-          in_cb_cr += frame.cb_cr_bytes_per_row;
-        }
-        CHECK(p == buf + buf_len, "Out-of-bounds");
+      in_cb_cr += frame.cb_cr_bytes_per_row;
+    }
+    CHECK(p == buf + buf_len, "Out-of-bounds");
 
-        callback({buffer_->Value(), Napi::Number::New(env, frame.width),
-                  Napi::Number::New(env, frame.height),
-                  Napi::Number::New(env, timestamp)});
-        dispatch_semaphore_signal(frame_sem_);
-      });
+    auto res = callback({buffer_->Value(), Napi::Number::New(env, frame.width),
+                         Napi::Number::New(env, frame.height),
+                         Napi::Number::New(env, timestamp)});
+    HANDLE_EXCEPTIONS(onFrame, res);
+    dispatch_semaphore_signal(frame_sem_);
+  });
   CHECK_EQ(rc, napi_ok, "onFrame tsfn failure");
 
   // Plane pointers remain valid for the duration of this call, therefore wait
