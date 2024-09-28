@@ -20,10 +20,8 @@ const stream = new Stream({
   height: 768,
   frameRate: 10,
 
-  onStart() {
-  },
-  onStop(error) {
-  },
+  onStart() {},
+  onStop(error) {},
   onFrame(frame, width, height, timestamp) {
     // Frame is in Nv12 encoding
     // timestamp is in seconds (not a unix epoch time)

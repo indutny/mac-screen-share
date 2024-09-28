@@ -49,5 +49,4 @@ window.start = () => {
     stream?.stop();
     stream = undefined;
   });
-
 };

@@ -28,6 +28,11 @@
     "node-addon-api": "*"
   },
   "scripts": {
-    "format": "xcrun clang-format --style=chromium -Werror --verbose -i *.h *.mm"
+    "format": "npm run format:js && npm run format:c",
+    "format:js": "prettier --cache --write .",
+    "format:c": "xcrun clang-format --style=chromium -Werror --verbose -i *.h *.mm"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
   }
 }
