@@ -31,12 +31,12 @@ window.start = () => {
         video.srcObject = undefined;
       },
 
-      onFrame(frame, width, height, timestamp) {
+      onFrame(frame, width, height) {
         const videoFrame = new VideoFrame(frame, {
           format: 'NV12',
           codedWidth: width,
           codedHeight: height,
-          timestamp: timestamp * 1e6,
+          timestamp: 0,
         });
         writer.write(videoFrame);
       },

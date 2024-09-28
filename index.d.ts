@@ -37,15 +37,8 @@ export type StreamOptions = Readonly<{
    * @param frame - Frame encoded in Nv12 format without padding.
    * @param width - Frame width/visible width
    * @param height - Frame height/visible height
-   * @param timestamp - Frame timestamp in seconds from the internal
-   *                    synchronization clock. Not a unix timestamp.
    */
-  onFrame: (
-    frame: Buffer,
-    width: number,
-    height: number,
-    timestamp: number,
-  ) => void;
+  onFrame: (frame: Buffer, width: number, height: number) => void;
 }>;
 
 /**
