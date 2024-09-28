@@ -24,8 +24,9 @@ const stream = new Stream({
   },
   onStop(error) {
   },
-  onFrame(frame, width, height) {
+  onFrame(frame, width, height, timestamp) {
     // Frame is in Nv12 encoding
+    // timestamp is in seconds (not a unix epoch time)
   },
 });
 

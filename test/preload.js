@@ -31,14 +31,16 @@ window.start = () => {
         video.srcObject = undefined;
       },
 
-      onFrame(frame, width, height) {
-        writer.write(new VideoFrame(frame, {
-          format: 'NV12',
-          codedWidth: width,
-          codedHeight: height,
-          timestamp: 0,
-        }));
-      }
+      onFrame(frame, width, height, timestamp) {
+        writer.write(
+          new VideoFrame(frame, {
+            format: 'NV12',
+            codedWidth: width,
+            codedHeight: height,
+            timestamp: timestamp * 1e6,
+          }),
+        );
+      },
     });
   });
 

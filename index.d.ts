@@ -7,7 +7,12 @@ export type StreamOptions = Readonly<{
 
   onStart: () => void;
   onStop: (error?: Error) => void;
-  onFrame: (frame: Buffer, width: number, height: number) => void;
+  onFrame: (
+    frame: Buffer,
+    width: number,
+    height: number,
+    timestamp: number,
+  ) => void;
 }>;
 
 export const isSupported: boolean;

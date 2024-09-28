@@ -180,6 +180,8 @@ API_AVAILABLE(macos(15.0))
 
 - (void)onFrame:(struct FrameData)frame {
   dispatch_assert_queue(frame_queue_);
+  auto timestamp =
+      CMTimeGetSeconds(CMSyncGetTime(stream_.synchronizationClock));
   auto rc =
       options_.on_frame.BlockingCall(^(Napi::Env env, Napi::Function callback) {
         // Y plane is 1 byte per pixel and has the same number of pixels as the
@@ -225,7 +227,8 @@ API_AVAILABLE(macos(15.0))
         CHECK(p == buf + buf_len, "Out-of-bounds");
 
         callback({buffer_->Value(), Napi::Number::New(env, frame.width),
-                  Napi::Number::New(env, frame.height)});
+                  Napi::Number::New(env, frame.height),
+                  Napi::Number::New(env, timestamp)});
         dispatch_semaphore_signal(frame_sem_);
       });
   CHECK_EQ(rc, napi_ok, "onFrame tsfn failure");
