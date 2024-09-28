@@ -1,7 +1,7 @@
 {
   "name": "@indutny/mac-screen-share",
   "description": "ScreenCaptureKit bindings for Node.js",
-  "version": "1.1.0",
+  "version": "1.0.12",
   "main": "index.js",
   "types": "index.d.ts",
   "keywords": [
