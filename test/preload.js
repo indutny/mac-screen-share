@@ -32,13 +32,13 @@ window.start = () => {
       },
 
       onFrame(frame, width, height, timestamp) {
-        const frame = new VideoFrame(frame, {
+        const videoFrame = new VideoFrame(frame, {
           format: 'NV12',
           codedWidth: width,
           codedHeight: height,
           timestamp: timestamp * 1e6,
         });
-        writer.write();
+        writer.write(videoFrame);
       },
     });
   });
