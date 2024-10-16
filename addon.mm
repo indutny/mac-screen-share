@@ -299,11 +299,7 @@ API_AVAILABLE(macos(15.0))
 
   config.width = options_.width;
   config.height = options_.height;
-  CMTime frame_interval = {
-      .value = 1,
-      .timescale = options_.frame_rate,
-  };
-  config.minimumFrameInterval = frame_interval;
+  config.minimumFrameInterval = CMTimeMake(1, options_.frame_rate);
 
   SCStream* new_stream = [[SCStream alloc] initWithFilter:filter
                                             configuration:config
