@@ -1,0 +1,72 @@
+name: Prebuild
+on:
+  release:
+    types: [published]
+permissions:
+  contents: write
+
+jobs:
+  prebuild:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup node.js
+        uses: actions/setup-node@v4
+
+      - name: Install node_modules
+        run: npm ci
+
+      - name: Prebuild arm64
+        run: npm run prebuildify
+      - name: Prebuild x64
+        run: npm run prebuildify -- --arch x64
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: prebuilds
+          path: prebuilds/*
+
+  publish:
+    name: Publish
+
+    runs-on: macos-latest
+
+    needs: prebuild
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup node.js
+        uses: actions/setup-node@v4
+        with:
+          registry-url: 'https://registry.npmjs.org/'
+
+      - name: Download built libraries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: prebuilds
+          path: prebuilds
+          merge-multiple: true
+
+      - name: Install node_modules
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint
+
+      - run: npm test
+        env:
+          PREBUILDS_ONLY: 1
+
+      - name: Publish
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

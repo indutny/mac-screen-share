@@ -12,9 +12,7 @@
   "files": [
     "index.js",
     "index.d.ts",
-    "binding.gyp",
-    "addon.mm",
-    "addon.h",
+    "prebuilds",
     "README.md"
   ],
   "author": "Fedor Indutny <238531+indutny@users.noreply.github.com>",
@@ -33,6 +31,7 @@
     "format:c": "xcrun clang-format --style=chromium -Werror --verbose -i *.h *.mm"
   },
   "devDependencies": {
+    "prebuildify": "^6.0.1",
     "prettier": "^3.3.3"
   }
 }
