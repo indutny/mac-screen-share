@@ -56,12 +56,6 @@ jobs:
       - name: Install node_modules
         run: npm ci
 
-      - name: Build
-        run: npm run build
-
-      - name: Lint
-        run: npm run lint
-
       - run: npm test
         env:
           PREBUILDS_ONLY: 1
