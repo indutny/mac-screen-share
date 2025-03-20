@@ -28,7 +28,8 @@
   "scripts": {
     "format": "npm run format:js && npm run format:c",
     "format:js": "prettier --cache --write .",
-    "format:c": "xcrun clang-format --style=chromium -Werror --verbose -i *.h *.mm"
+    "format:c": "xcrun clang-format --style=chromium -Werror --verbose -i *.h *.mm",
+    "prebuildify": "prebuildify --strip --napi"
   },
   "devDependencies": {
     "prebuildify": "^6.0.1",
