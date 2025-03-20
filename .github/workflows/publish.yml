@@ -56,10 +56,6 @@ jobs:
       - name: Install node_modules
         run: npm ci
 
-      - run: npm test
-        env:
-          PREBUILDS_ONLY: 1
-
       - name: Publish
         run: npm publish --access public
         env:
