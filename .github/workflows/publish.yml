@@ -66,6 +66,8 @@ jobs:
         with:
           registry-url: 'https://registry.npmjs.org/'
 
+      - run: npm install -g npm@latest
+
       - name: Download built libraries
         uses: actions/download-artifact@v8
         with:
