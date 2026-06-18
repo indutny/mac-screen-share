@@ -9,6 +9,11 @@ jobs:
   prebuild:
     runs-on: macos-latest
 
+    permissions:
+      id-token: write
+      contents: read
+      attestations: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -45,6 +50,10 @@ jobs:
     name: Publish
 
     runs-on: macos-latest
+
+    permissions:
+      id-token: write
+      contents: read
 
     needs: prebuild
 
