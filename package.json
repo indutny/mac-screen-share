@@ -12,14 +12,15 @@
   "files": [
     "index.js",
     "index.d.ts",
-    "binding.gyp",
-    "addon.mm",
-    "addon.h",
     "prebuilds",
     "README.md"
   ],
   "author": "Fedor Indutny <238531+indutny@users.noreply.github.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/indutny/mac-screen-share.git"
+  },
   "bugs": {
     "url": "https://github.com/indutny/mac-screen-share/issues"
   },
