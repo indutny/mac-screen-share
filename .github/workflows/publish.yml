@@ -11,21 +11,32 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
 
       - name: Install node_modules
         run: npm ci
 
       - name: Prebuild arm64
         run: npm run prebuildify
+
+      - name: Generate arm64 attestation
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-path: prebuilds/darwin-arm64/@indutny+mac-screen-share.node
+
       - name: Prebuild x64
         run: npm run prebuildify -- --arch x64
 
+      - name: Generate x64 attestation
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-path: prebuilds/darwin-x64/@indutny+mac-screen-share.node
+
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: prebuilds
           path: prebuilds/*
@@ -39,15 +50,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           registry-url: 'https://registry.npmjs.org/'
 
       - name: Download built libraries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: prebuilds
           path: prebuilds
@@ -57,6 +68,4 @@ jobs:
         run: npm ci
 
       - name: Publish
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance

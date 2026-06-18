@@ -15,6 +15,7 @@
     "binding.gyp",
     "addon.mm",
     "addon.h",
+    "prebuilds",
     "README.md"
   ],
   "author": "Fedor Indutny <238531+indutny@users.noreply.github.com>",
@@ -28,11 +29,13 @@
     "node-addon-api": "*"
   },
   "scripts": {
+    "prebuildify": "prebuildify --strip --napi",
     "format": "npm run format:js && npm run format:c",
     "format:js": "prettier --cache --write .",
     "format:c": "xcrun clang-format --style=chromium -Werror --verbose -i *.h *.mm"
   },
   "devDependencies": {
+    "prebuildify": "^6.0.1",
     "prettier": "^3.3.3"
   }
 }

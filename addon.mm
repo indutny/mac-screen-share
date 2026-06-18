@@ -458,7 +458,7 @@ API_AVAILABLE(macos(15.0))
                     .origin_y = origin_y,
                     .width = width,
                     .height = height,
-                }];
+  }];
 
   CHECK_EQ(
       CVPixelBufferUnlockBaseAddress(image_buffer, kCVPixelBufferLock_ReadOnly),
